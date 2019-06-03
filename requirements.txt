@@ -1,0 +1,4 @@
+websocket
+websocket-client
+dronekit
+pymavlink
