@@ -1,7 +1,7 @@
 import os
 
 defaults = {
-    "gcs_url": "ws://hive:8081",
+    "gcs_url": "ws://hive:8656",
     "mavlink": "0.0.0.0:14590",
     "token": "dev",
     "name": "Peuplier",
