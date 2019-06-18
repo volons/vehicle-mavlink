@@ -1,11 +1,13 @@
 import os
+import json
 
 defaults = {
     "gcs_url": "ws://hive:8656",
     "mavlink": "0.0.0.0:14590",
     "token": "dev",
     "name": "Peuplier",
-    "model": "Custom"
+    "model": "Custom",
+    "status_period": 0.5
 }
 
 
@@ -19,7 +21,7 @@ class Config(object):
     @classmethod
     def read(cls, filename):
         if filename in ("", None):
-            cls._instance = cls({});
+            cls._instance = cls({})
         else:
             with open(filename) as configfile:
                 data = json.load(configfile)
@@ -34,6 +36,7 @@ class Config(object):
         self.token = self.readValue("token", config)
         self.name = self.readValue("name", config)
         self.model = self.readValue("model", config)
+        self.status_period = self.readValue("status_period", config)
 
     def readValue(self, name, config):
         # Get value from config then env variable then default value

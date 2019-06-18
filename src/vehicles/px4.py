@@ -1,9 +1,9 @@
 #!/usr/bin/env python
 
 from base import VehicleBase
-from pymavlink import mavutil
-from dronekit import VehicleMode
+from dronekit import VehicleMode, LocationGlobalRelative
 import time
+
 
 class VehiclePX4(VehicleBase):
     def __init__(self, gcs, addr):
@@ -24,15 +24,11 @@ class VehiclePX4(VehicleBase):
 
         super(VehiclePX4, self).run()
 
-        #self.rc_pub = rospy.Publisher("/mavros/manual_control/control", ManualControl, queue_size=10)
-        #self.rc_pub = rospy.Publisher("/mavros/rc/override", OverrideRCIn, queue_size=10)
-        #self.goto_pub = rospy.Publisher("/mavros/setpoint_raw/global", GlobalPositionTarget, queue_size=10)
-
-    def takeoff(self, data):
-        #self.vehicle._master.mav.command_long_send(self.vehicle._master.target_system, self.vehicle._master.target_component, mavutil.mavlink.MAV_CMD_NAV_TAKEOFF, 0, 0, 0, 0, 0, 0, 0, 5)
+    def arm(self):
+        if self.vehicle.armed:
+            return
 
         print("Pre-arm checks")
-        targetAlt = 10
 
         # Don't arm until autopilot is ready
         while not self.vehicle.is_armable:
@@ -49,36 +45,22 @@ class VehiclePX4(VehicleBase):
             print("Waiting for arming...")
             time.sleep(1)
 
-        print("Taking off!")
+    def takeoff(self, data):
+        self.arm()
+
+        targetAlt = data and data["relAlt"] or 10
         # Take off to target altitude
         self.vehicle.simple_takeoff(targetAlt)
-
-        # Wait for takeoff to finish
-        while self.vehicle.location.global_relative_frame.alt < targetAlt * 0.95:
-            print("Altitude: %s" % self.vehicle.location.global_relative_frame.alt)
-            time.sleep(1)
 
         return (None, None)
 
     def land(self, data):
-        return (None, "not implemented")
-
-        #rospy.wait_for_service('/mavros/cmd/land')
-
-        #try:
-        #    land = rospy.ServiceProxy('/mavros/cmd/land', CommandTOL)
-        #    resp = land(x, y)
-
-        #    if resp.success is True:
-        #        cb(None)
-        #    else:
-        #        cb(resp.result)
-
-        #except rospy.ServiceException as err:
-        #    cb("%s" % err)
+        self.vehicle.mode = VehicleMode("LAND")
+        return (None, None)
 
     def rtl(self, data):
-        return (None, "not implemented")
+        self.vehicle.mode = VehicleMode("RTL")
+        return (None, None)
 
     def rc(self, data):
         if data is None:
@@ -90,31 +72,18 @@ class VehiclePX4(VehicleBase):
             throttle = data["throttle"]
             gimbal = data["gimbal"]
 
-        #msg = ManualControl()
-        #msg.x = pitch
-        #msg.y = roll
-        #msg.z = throttle
-        #msg.r = yaw
-
-        #self.rc_pub.publish(msg)
-
     def goto(self, data):
+        self.arm()
+
         if data is None:
             return (None, "no data")
         else:
             lat = data["lat"]
             lon = data["lon"]
             rel_alt = data["relAlt"]
+
+            p = LocationGlobalRelative(lat, lon, rel_alt)
+            self.vehicle.simple_goto(p)
             print("Goto lat: %s, lon: %s, alt: %s" % (lat, lon, rel_alt))
 
             return ("OK", None)
-
-        #msg = GlobalPositionTarget()
-        #msg.coordinate_frame = msg.FRAME_GLOBAL_REL_ALT
-        #msg.latitude = lat
-        #msg.longitude = lon
-        #msg.altitude = rel_alt
-
-        #self.goto_pub.publish(msg)
-        #cb()
-

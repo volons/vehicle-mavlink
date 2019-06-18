@@ -101,6 +101,8 @@ class VehicleBase(object):
         cb("not implemented")
 
     def send_status_loop(self):
+        conf = Config.get()
+
         while True:
             pos = self.vehicle.location.global_relative_frame
             hdg = self.vehicle.heading
@@ -123,7 +125,11 @@ class VehicleBase(object):
                 }))
                 #print("Battery: current: %s, percent: %s, voltage: %s" % (bat.current, bat.level, bat.voltage))
 
-            time.sleep(1) # send every second
+            self.send(Message("status", {
+                "armed": self.vehicle.armed
+            }))
+
+            time.sleep(conf.status_period) # send every second
 
 
 
